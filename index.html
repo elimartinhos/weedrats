@@ -13,8 +13,9 @@
         
         .user-menu { display: none; position: absolute; top: 50px; right: 0; background: #252525; border: 1px solid #444; border-radius: 12px; padding: 8px; width: 180px; z-index: 500; box-shadow: 0 8px 25px rgba(0,0,0,0.9); }
         .user-menu button { width: 100%; background: none; border: none; color: white; padding: 12px; text-align: left; cursor: pointer; border-radius: 6px; font-size: 0.95em; display: block; }
+        .user-menu button:hover { background: #333; }
 
-        /* MODAL CUSTOMIZADO */
+        /* MODAL CUSTOMIZADO (SUBSTITUI O PROMPT) */
         #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; }
         .modal-content { background: #252525; padding: 25px; border-radius: 20px; border: 1px solid var(--green); width: 85%; max-width: 320px; text-align: center; }
         .modal-content h3 { margin-top: 0; color: var(--green); }
@@ -29,20 +30,27 @@
         .post { background: #222; margin-bottom: 25px; border-radius: 15px; overflow: hidden; border: 1px solid #333; text-align: left; position: relative; }
         .post img { width: 100%; height: auto; display: block; }
         .post-content { padding: 15px; }
+        .username { font-weight: bold; margin-bottom: 5px; display: block; }
 
-        /* EMOJIS LARGOS */
         .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; align-items: center; }
+        .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
+        .react-count.active { border-color: var(--green); background: #1e3a2a; }
+        
         .picker-container { position: static; } 
         .add-emoji-btn { cursor: pointer; background: #333; border: 1px solid #444; border-radius: 8px; padding: 5px 12px; color: #fff; font-size: 1.1em; outline: none; }
+        
         .emoji-leque { 
             display: none; position: absolute; bottom: 80px; left: 0; right: 0;
             background: #252525; padding: 15px; border-top: 2px solid #555; border-bottom: 2px solid #555;
             z-index: 1000; grid-template-columns: repeat(8, 1fr); gap: 10px;
             max-height: 350px; overflow-y: auto;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
         }
         .emoji-leque.show { display: grid; }
-        .emoji-option { cursor: pointer; font-size: 1.8em; background: none; border: none; padding: 8px; }
+        .emoji-option { cursor: pointer; font-size: 1.8em; background: none; border: none; padding: 8px; border-radius: 10px; }
 
+        .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .comment { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
         .comment-box { display: flex; gap: 8px; margin-top: 10px; }
         .comment-input { flex-grow: 1; background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; box-sizing: border-box; }
         .btn-comment-ok { background: var(--green); border: none; color: white; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
@@ -81,18 +89,22 @@
         </div>
     </header>
 
-    <div id="ranking"><strong>🏆 TOP RATS</strong><div id="listRanking"></div></div>
+    <div id="ranking">
+        <strong>🏆 TOP RATS</strong>
+        <div id="listRanking" style="margin-top:10px;">Carregando...</div>
+    </div>
+
     <main id="feed"></main>
 
     <div id="upload-area" class="hidden">
         <input type="file" id="fileInput" accept="image/*" class="hidden">
         <button id="btnCheckin" onclick="document.getElementById('fileInput').click()" class="btn">🔥 LANÇAR CHECK-IN</button>
-        <p id="msgLimit" class="hidden">Check-in concluído! ✅</p>
+        <p id="msgLimit" class="hidden" style="font-size: 0.85em; color: #e74c3c; margin-top: 10px; font-weight: bold;">Check-in diário concluído! ✅</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -109,38 +121,43 @@
         const auth = window.auth = getAuth(app);
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
-        const EMOJIS = ['🔥','🌿','💨','👽','🍄','🇯🇲','🐀','🦁','🐍','🐲','🐒','🦄','🌵','🌴','🍀','🍁','🌲','🌻','💀','🤡','🤖','🤠','😈','🤮','🙄','😎','😍','😂','🚀','🛸','💻','📱','🎮','🔋','💎','🎸','💵','🚬','🍿','🍕','🍦','🎨','🎭','🌊','🌈','⚡','🧿','👑','🧬','🧪','💩','👻','🎃','👺','🐺','🐗','🐯','🦒','🐘','🦓','🦍','🦧','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐬','🐳','🦈','🐊','🐢','🦎','🦖','🦕','🐉','🦜','🦢','🦩','🕊️','🦉','🦇','🦋','🐌','🐜'];
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dexhvbdau/image/upload";
+        const CLOUDINARY_PRESET = "weedrats_preset";
 
-        // CORREÇÃO PARA IPHONE: USA REDIRECT EM VEZ DE POPUP
-        document.getElementById('btnLogin').onclick = () => signInWithRedirect(auth, provider);
-        
-        getRedirectResult(auth).catch(err => console.error("Erro no redirect:", err));
+        const EMOJIS = ['🔥','🌿','💨','👽','🍄','🇯🇲','🐀','🦁','🐍','🐲','🐒','🦄','🌵','🌴','🍀','🍁','🌲','🌻','💀','🤡','🤖','🤠','😈','🤮','🙄','😎','😍','😂','🚀','🛸','💻','📱','🎮','🔋','💎','🎸','💵','🚬','🍿','🍕','🍦','🎨','🎭','🌊','🌈','⚡','🧿','👑','🧬','🧪','💩','👻','🎃','👺','🐺','🐗','🐯','🦒','🐘','🦓','🦍','🦧','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐬','🐳','鯊','🐊','🐢','🦎','🦖','🦕','🐉','🦜','🦢','🦩','🕊️','🦉','🦇','🦋','🐌','🐜'];
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const p = await verificarPerfil(user);
-                document.getElementById('btnLogin').classList.add('hidden');
-                document.getElementById('user-initial-box').classList.remove('hidden');
-                document.getElementById('upload-area').classList.remove('hidden'); 
-                document.getElementById('initialCircle').firstChild.textContent = p.nickname.charAt(0).toUpperCase();
-                carregarPostsERanking();
-            }
-        });
-
-        // FUNÇÕES DE INTERFACE (MODAL E EMOJIS)
         window.toggleUserMenu = () => {
             const m = document.getElementById('userMenu');
             m.style.display = m.style.display === 'block' ? 'none' : 'block';
         };
+
+        // LÓGICA DO MODAL DE NICK
         window.abrirModalNick = () => {
             document.getElementById('userMenu').style.display = 'none';
             document.getElementById('customModal').style.display = 'flex';
+            document.getElementById('modalInput').focus();
         };
-        window.fecharModal = () => document.getElementById('customModal').style.display = 'none';
+
+        window.fecharModal = () => {
+            document.getElementById('customModal').style.display = 'none';
+        };
+
         window.salvarNovoNick = async () => {
             const n = document.getElementById('modalInput').value;
-            if (n) { await updateDoc(doc(db, "users", auth.currentUser.uid), { nickname: n }); location.reload(); }
+            if (n) {
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { nickname: n });
+                location.reload();
+            } else {
+                fecharModal();
+            }
         };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.picker-container')) {
+                document.querySelectorAll('.emoji-leque').forEach(el => el.classList.remove('show'));
+            }
+        });
+
         window.toggleEmojiPicker = (id) => {
             const el = document.getElementById(`leque-${id}`);
             const isShow = el.classList.contains('show');
@@ -148,43 +165,130 @@
             if (!isShow) el.classList.add('show');
         };
 
-        // Lógica de posts e reações simplificada para performance
+        document.getElementById('btnLogin').onclick = () => signInWithPopup(auth, provider);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const p = await verificarPerfil(user);
+                document.getElementById('btnLogin').classList.add('hidden');
+                document.getElementById('user-initial-box').classList.remove('hidden');
+                document.getElementById('upload-area').classList.remove('hidden'); 
+                const initial = p.nickname.charAt(0).toUpperCase();
+                document.getElementById('initialCircle').firstChild.textContent = initial;
+                document.getElementById('initialCircle').style.backgroundColor = p.color || '#2ecc71';
+                verificarLimiteDiario(user.uid);
+                carregarPostsERanking();
+            }
+        });
+
         async function verificarPerfil(user) {
             const r = doc(db, "users", user.uid);
             const s = await getDoc(r);
             if (!s.exists()) {
-                const d = { nickname: user.displayName || "Rat", uid: user.uid, color: '#2ecc71' };
+                const n = prompt("Qual seu vulgo?", user.displayName) || user.displayName;
+                const d = { nickname: n, uid: user.uid, color: '#2ecc71' };
                 await setDoc(r, d); return d;
             }
             return s.data();
         }
 
+        async function verificarLimiteDiario(uid) {
+            const h = new Date(); h.setHours(0,0,0,0);
+            const q = query(collection(db, "posts"), where("uid", "==", uid), where("timestamp", ">=", h), limit(1));
+            onSnapshot(q, s => { 
+                if(!s.empty){ 
+                    document.getElementById('btnCheckin').disabled = true; 
+                    document.getElementById('msgLimit').classList.remove('hidden'); 
+                }
+            });
+        }
+
+        window.reagir = async (postId, emoji) => {
+            const u = auth.currentUser.uid;
+            const r = doc(db, "posts", postId);
+            const s = await getDoc(r);
+            const reacts = s.data().userReactions || {};
+            if (reacts[u] === emoji) { await updateDoc(r, { [`userReactions.${u}`]: deleteField() }); }
+            else { await updateDoc(r, { [`userReactions.${u}`]: emoji }); }
+            document.getElementById(`leque-${postId}`).classList.remove('show');
+        };
+
+        function atualizarReacoesNaTela(postId, reacoes) {
+            const b = document.getElementById(`reactions-${postId}`);
+            if (!b) return;
+            const my = auth.currentUser ? reacoes[auth.currentUser.uid] : null;
+            const tots = {};
+            Object.values(reacoes).forEach(e => tots[e] = (tots[e] || 0) + 1);
+            const hReacoes = Object.entries(tots).map(([e, c]) => `
+                <button class="react-count ${my === e ? 'active' : ''}" onclick="reagir('${postId}', '${e}')">${e} ${c}</button>
+            `).join('');
+            const hLeque = EMOJIS.map(e => `<button class="emoji-option" onclick="reagir('${postId}', '${e}')">${e}</button>`).join('');
+            b.innerHTML = `${hReacoes} <div class="picker-container"><button class="add-emoji-btn" onclick="toggleEmojiPicker('${postId}')">☺</button><div class="emoji-leque" id="leque-${postId}">${hLeque}</div></div>`;
+        }
+
+        document.getElementById('fileInput').onchange = async (e) => {
+            const f = e.target.files[0]; if (!f) return;
+            const btn = document.getElementById('btnCheckin'); btn.disabled = true; btn.innerText = "SUBINDO...";
+            const fd = new FormData(); fd.append('file', f); fd.append('upload_preset', CLOUDINARY_PRESET);
+            try {
+                const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
+                const j = await res.json();
+                await addDoc(collection(db, "posts"), { uid: auth.currentUser.uid, imageUrl: j.secure_url, timestamp: serverTimestamp(), userReactions: {} });
+            } catch (err) { alert("Erro!"); btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN"; }
+        };
+
         function carregarPostsERanking() {
             const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
             onSnapshot(q, (snap) => {
                 const feed = document.getElementById('feed');
+                const rankingDiv = document.getElementById('listRanking');
                 snap.docs.forEach(async (d) => {
-                    const id = d.id; const data = d.data();
-                    if (!document.getElementById(`post-${id}`)) {
-                        const u = await getDoc(doc(db, "users", data.uid));
-                        const el = document.createElement('div'); el.className = 'post'; el.id = `post-${id}`;
-                        el.innerHTML = `<img src="${data.imageUrl}"><div class="post-content"><b>${u.data().nickname}</b><div class="reactions-bar" id="reactions-${id}"></div><div class="comment-box"><input type="text" id="input-${id}" class="comment-input" placeholder="Comentar..."><button class="btn-comment-ok" onclick="enviarComent('${id}')">OK</button></div></div>`;
+                    const data = d.data(); const id = d.id;
+                    let el = document.getElementById(`post-${id}`);
+                    if (!el) {
+                        el = document.createElement('div'); el.className = 'post'; el.id = `post-${id}`;
                         feed.appendChild(el);
+                        const u = await getDoc(doc(db, "users", data.uid));
+                        const ud = u.data();
+                        el.innerHTML = `
+                            <img src="${data.imageUrl}">
+                            <div class="post-content">
+                                <span class="username" style="color:${ud.color || 'var(--green)'}">${ud.nickname}</span>
+                                <div class="reactions-bar" id="reactions-${id}"></div>
+                                <div class="comments-section" id="comments-${id}"></div>
+                                <div class="comment-box">
+                                    <input type="text" id="input-${id}" class="comment-input" placeholder="Comentar...">
+                                    <button class="btn-comment-ok" onclick="enviarComent('${id}')">OK</button>
+                                </div>
+                            </div>`;
+                        onSnapshot(query(collection(db, `posts/${id}/comments`), orderBy("timestamp", "asc")), s => {
+                            const cDiv = document.getElementById(`comments-${id}`);
+                            if(cDiv) cDiv.innerHTML = s.docs.map(cd => `<div class="comment"><b>${cd.data().user}:</b> ${cd.data().text}</div>`).join('');
+                        });
                     }
-                    atualizarReacoes(id, data.userReactions || {});
+                    atualizarReacoesNaTela(id, data.userReactions || {});
                 });
+                setTimeout(async () => {
+                    const counts = {};
+                    for(let d of snap.docs) {
+                        const u = await getDoc(doc(db, "users", d.data().uid));
+                        if(u.exists()){
+                           const n = u.data().nickname;
+                           counts[n] = (counts[n] || 0) + 1;
+                        }
+                    }
+                    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+                    rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}º ${n}</span><b>${p} pts</b></div>`).join('');
+                }, 1000);
             });
         }
 
-        function atualizarReacoes(id, reacts) {
-            const hLeque = EMOJIS.map(e => `<button class="emoji-option" onclick="reagir('${id}', '${e}')">${e}</button>`).join('');
-            document.getElementById(`reactions-${id}`).innerHTML = `<div class="picker-container"><button class="add-emoji-btn" onclick="toggleEmojiPicker('${id}')">☺</button><div class="emoji-leque" id="leque-${id}">${hLeque}</div></div>`;
-        }
-
-        window.reagir = async (postId, emoji) => {
-            const r = doc(db, "posts", postId);
-            await updateDoc(r, { [`userReactions.${auth.currentUser.uid}`]: emoji });
-            document.getElementById(`leque-${postId}`).classList.remove('show');
+        window.enviarComent = async (id) => {
+            const input = document.getElementById(`input-${id}`);
+            if(!input.value) return;
+            const u = await getDoc(doc(db, "users", auth.currentUser.uid));
+            await addDoc(collection(db, `posts/${id}/comments`), { text: input.value, user: u.data().nickname, timestamp: serverTimestamp() });
+            input.value = "";
         };
     </script>
 </body>
