@@ -6,7 +6,7 @@
     <title>WeedRats 🌿</title>
     <style>
         :root { --green: #2ecc71; --dark: #1a1a1a; --text: #eee; }
-        body { font-family: sans-serif; background: var(--dark); color: var(--text); text-align: center; margin: 0; padding-bottom: 90px; }
+        body { font-family: sans-serif; background: var(--dark); color: var(--text); text-align: center; margin: 0; padding-bottom: 100px; }
         header { padding: 20px; border-bottom: 1px solid #333; background: var(--dark); position: sticky; top: 0; z-index: 10; }
         #ranking { background: #252525; margin: 15px; padding: 15px; border-radius: 12px; border: 1px solid var(--green); }
         #feed { padding: 10px; max-width: 500px; margin: 0 auto; }
@@ -22,10 +22,12 @@
         
         /* Reações e Comentários */
         .reactions { margin-top: 10px; display: flex; gap: 15px; border-top: 1px solid #333; padding-top: 10px; }
-        .react-btn { cursor: pointer; background: none; border: none; color: #888; font-size: 1.2em; }
-        .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.9em; }
-        .comment { margin-bottom: 5px; }
-        .comment-input { width: 100%; background: #333; border: none; color: white; padding: 8px; border-radius: 5px; margin-top: 5px; }
+        .react-btn { cursor: pointer; background: #333; border: none; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; transition: 0.2s; }
+        .react-btn:hover { background: #444; }
+        .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .comment { margin-bottom: 5px; color: #ccc; }
+        .comment b { color: var(--green); }
+        .comment-input { width: 100%; background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -36,7 +38,7 @@
             <button id="btnLogin" class="btn">Login com Google</button>
             <div id="user-info" class="hidden">
                 <span id="userName" class="username"></span> 
-                <span style="font-size:0.7em; cursor:pointer; text-decoration:underline;" onclick="alterarNick()">[mudar nick]</span>
+                <span style="font-size:0.7em; cursor:pointer; text-decoration:underline; color: #888;" onclick="alterarNick()">[mudar nick]</span>
                 | <button onclick="auth.signOut().then(() => location.reload())" style="background:none; border:none; color:gray; cursor:pointer;">Sair</button>
             </div>
         </div>
@@ -44,7 +46,7 @@
 
     <div id="ranking">
         <strong>🏆 TOP RATS</strong>
-        <div id="listRanking" style="margin-top:10px;">Carregando...</div>
+        <div id="listRanking" style="margin-top:10px; font-size: 0.9em;">Carregando...</div>
     </div>
 
     <main id="feed"></main>
@@ -58,7 +60,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT4P90b1zGfPPn8h1wpPbrs9QgARMOuQU",
@@ -117,8 +119,15 @@
             onSnapshot(q, s => { if(!s.empty){ document.getElementById('btnCheckin').disabled = true; document.getElementById('msgLimit').classList.remove('hidden'); }});
         }
 
+        // FUNÇÃO DE REAÇÃO (CORRIGIDA)
+        window.reagir = async (postId, emoji) => {
+            const postRef = doc(db, "posts", postId);
+            const campo = `reactions.${emoji}`;
+            await updateDoc(postRef, { [campo]: increment(1) });
+        };
+
         // Sistema de Comentários
-        window.enviarComentario = async (postId, input) => {
+        window.enviarComentario = async (postId, input, event) => {
             if (event.key === 'Enter' && input.value) {
                 const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
                 await addDoc(collection(db, `posts/${postId}/comments`), {
@@ -134,7 +143,7 @@
             const file = e.target.files[0];
             if (!file) return;
             const btn = document.getElementById('btnCheckin');
-            btn.disabled = true; btn.innerText = "SUBINDO...";
+            btn.disabled = true; btn.innerText = "SUBINDO FUMAÇA...";
             const formData = new FormData();
             formData.append('file', file); formData.append('upload_preset', CLOUDINARY_PRESET);
             try {
@@ -160,12 +169,12 @@
 
                 snapshot.forEach(async postDoc => {
                     const data = postDoc.data();
+                    const postId = postDoc.id;
                     const postElement = document.createElement('div');
                     postElement.className = 'post';
                     
-                    // Busca nick em tempo real para posts antigos
                     const uSnap = await getDoc(doc(db, "users", data.uid));
-                    const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat Desconhecido";
+                    const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat";
                     contagem[currentNick] = (contagem[currentNick] || 0) + 1;
 
                     postElement.innerHTML = `
@@ -173,27 +182,25 @@
                         <div class="post-content">
                             <div class="post-header"><span class="username">${currentNick}</span></div>
                             <div class="reactions">
-                                <span>🔥 ${data.reactions?.["🔥"] || 0}</span>
-                                <span>🌿 ${data.reactions?.["🌿"] || 0}</span>
-                                <span>💨 ${data.reactions?.["💨"] || 0}</span>
+                                <button class="react-btn" onclick="reagir('${postId}', '🔥')">🔥 ${data.reactions?.["🔥"] || 0}</button>
+                                <button class="react-btn" onclick="reagir('${postId}', '🌿')">🌿 ${data.reactions?.["🌿"] || 0}</button>
+                                <button class="react-btn" onclick="reagir('${postId}', '💨')">💨 ${data.reactions?.["💨"] || 0}</button>
                             </div>
-                            <div class="comments-section" id="comments-${postDoc.id}"></div>
-                            <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postDoc.id}', this)">
+                            <div class="comments-section" id="comments-${postId}"></div>
+                            <input type="text" class="comment-input" placeholder="Escreva um comentário..." onkeypress="enviarComentario('${postId}', this, event)">
                         </div>`;
                     feed.appendChild(postElement);
 
-                    // Carregar Comentários
-                    onSnapshot(query(collection(db, `posts/${postDoc.id}/comments`), orderBy("timestamp", "asc")), s => {
-                        const div = document.getElementById(`comments-${postDoc.id}`);
-                        div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
+                    onSnapshot(query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "asc")), s => {
+                        const div = document.getElementById(`comments-${postId}`);
+                        if(div) div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
                     });
                 });
                 
-                // Atualiza Ranking (Top 5)
                 setTimeout(() => {
                     const sorted = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 5);
-                    rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div>${i+1}º ${n} - ${p} pts</div>`).join('');
-                }, 1000);
+                    rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}º ${n}</span><b>${p} pts</b></div>`).join('');
+                }, 1500);
             });
         }
     </script>
