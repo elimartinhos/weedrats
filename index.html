@@ -12,10 +12,12 @@
         .user-initial { width: 40px; height: 40px; background: var(--green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; cursor: pointer; position: relative; border: 2px solid #444; }
         
         /* Menu de Perfil */
-        .user-menu { display: none; position: absolute; top: 50px; right: 0; background: #252525; border: 1px solid #444; border-radius: 12px; padding: 10px; width: 200px; z-index: 500; box-shadow: 0 8px 25px rgba(0,0,0,0.9); }
-        .user-menu button, .user-menu label { width: 100%; background: none; border: none; color: white; padding: 12px; text-align: left; cursor: pointer; border-radius: 6px; font-size: 0.95em; display: block; box-sizing: border-box; }
-        .user-menu button:hover, .user-menu label:hover { background: #333; }
-        #colorPicker { position: absolute; opacity: 0; pointer-events: none; width: 1px; }
+        .user-menu { display: none; position: absolute; top: 50px; right: 0; background: #252525; border: 1px solid #444; border-radius: 12px; padding: 12px; width: 220px; z-index: 500; box-shadow: 0 8px 25px rgba(0,0,0,0.9); }
+        .user-menu button { width: 100%; background: none; border: none; color: white; padding: 10px; text-align: left; cursor: pointer; border-radius: 6px; font-size: 0.95em; display: block; }
+        .user-menu button:hover { background: #333; }
+        .color-selector-box { display: flex; align-items: center; gap: 5px; padding: 10px; border-top: 1px solid #444; margin-top: 5px; }
+        #colorPicker { cursor: pointer; border: none; background: none; width: 40px; height: 30px; }
+        .btn-mini { background: var(--green); color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
 
         #ranking { background: #252525; margin: 15px; padding: 15px; border-radius: 12px; border: 1px solid var(--green); }
         #feed { padding: 10px; max-width: 500px; margin: 0 auto; }
@@ -24,31 +26,37 @@
         .post-content { padding: 15px; }
         .username { font-weight: bold; margin-bottom: 5px; display: block; }
 
-        /* Reações e Super Leque de 100 Emojis */
+        /* REAÇÕES E SUPER JANELA DE EMOJIS (GIGANTE) */
         .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; align-items: center; }
         .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
         .react-count.active { border-color: var(--green); background: #1e3a2a; }
         
         .picker-container { position: relative; display: inline-block; }
-        .add-emoji-btn { cursor: pointer; background: #333; border: 1px solid #444; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2em; display: flex; align-items: center; justify-content: center; }
         
-        /* Janela de Emoji Corrigida */
+        /* BOTÃO COM CARACTERE DE TEXTO */
+        .add-emoji-btn { cursor: pointer; background: #333; border: 1px solid #444; border-radius: 8px; padding: 5px 10px; color: #aaa; font-size: 0.9em; font-weight: bold; font-family: monospace; }
+        
+        /* Janela de Emoji Corrigida: LARGA E ALTA */
         .emoji-leque { 
-            display: none; position: absolute; bottom: 45px; left: -160px; 
+            display: none; position: absolute; bottom: 45px; left: -220px; 
             background: #252525; padding: 15px; border-radius: 20px; 
-            border: 1px solid #555; z-index: 1000; 
+            border: 2px solid #555; z-index: 1000; 
             grid-template-columns: repeat(7, 1fr); gap: 12px;
-            width: 340px; max-height: 380px; overflow-y: auto;
-            box-shadow: 0 -10px 40px rgba(0,0,0,1);
+            width: 360px; max-height: 450px; overflow-y: auto; overflow-x: hidden;
+            box-shadow: 0 -10px 50px rgba(0,0,0,1);
         }
+        @media (max-width: 400px) { .emoji-leque { left: -150px; width: 300px; grid-template-columns: repeat(6, 1fr); } }
+
         .picker-container:hover .emoji-leque { display: grid; }
-        .emoji-option { cursor: pointer; font-size: 1.6em; background: none; border: none; padding: 5px; transition: 0.15s; border-radius: 10px; }
+        .emoji-option { cursor: pointer; font-size: 1.8em; background: none; border: none; padding: 10px; transition: 0.2s; border-radius: 12px; width: 100%; display: flex; align-items: center; justify-content: center; }
         .emoji-option:hover { background: #444; transform: scale(1.2); }
 
-        /* Comentários */
+        /* Comentários com botão OK */
         .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
         .comment { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
-        .comment-input { width: 100%; background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
+        .comment-box { display: flex; gap: 8px; margin-top: 10px; }
+        .comment-input { flex-grow: 1; background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; box-sizing: border-box; }
+        .btn-comment-ok { background: var(--green); border: none; color: white; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
         #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
         .btn { background: var(--green); border: none; padding: 14px 28px; border-radius: 30px; color: white; cursor: pointer; font-weight: bold; width: 100%; font-size: 1em; }
@@ -66,8 +74,11 @@
                 <div class="user-initial" id="initialCircle" onclick="toggleUserMenu()">?
                     <div class="user-menu" id="userMenu">
                         <button onclick="alterarNick()">📝 Mudar Nick</button>
-                        <label for="colorPicker">🎨 Mudar Cor do Nick</label>
-                        <input type="color" id="colorPicker">
+                        <div class="color-selector-box">
+                            <span style="font-size:0.85em">🎨 Cor:</span>
+                            <input type="color" id="colorPicker">
+                            <button class="btn-mini" onclick="salvarCor()">OK</button>
+                        </div>
                         <hr style="border:0; border-top:1px solid #444; margin: 5px 0;">
                         <button onclick="auth.signOut().then(() => location.reload())" style="color:#e74c3c">🚪 Sair</button>
                     </div>
@@ -78,7 +89,7 @@
 
     <div id="ranking">
         <strong>🏆 TOP RATS</strong>
-        <div id="listRanking" style="margin-top:10px;">Carregando ranking...</div>
+        <div id="listRanking" style="margin-top:10px;">Carregando...</div>
     </div>
 
     <main id="feed"></main>
@@ -94,7 +105,7 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // MANTENDO EXATAMENTE SUA CONFIGURAÇÃO ORIGINAL
+        // CONFIGURAÇÃO ORIGINAL
         const firebaseConfig = {
             apiKey: "AIzaSyBT4P90b1zGfPPn8h1wpPbrs9QgARMOuQU",
             authDomain: "weedrats-45fd9.firebaseapp.com",
@@ -112,7 +123,6 @@
         const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dexhvbdau/image/upload";
         const CLOUDINARY_PRESET = "weedrats_preset";
 
-        // OS 100 EMOJIS AGORA EM PAINEL GRANDE
         const EMOJIS = ['🔥','🌿','💨','👽','🍄','🇯🇲','🐀','🦁','🐍','🐲','🐒','🦄','🌵','🌴','🍀','🍁','🌲','🌻','💀','🤡','🤖','🤠','😈','🤮','🙄','😎','😍','😂','🚀','🛸','💻','📱','🎮','🔋','💎','🎸','💵','🚬','🍿','🍕','🍦','🎨','🎭','🌊','🌈','⚡','🧿','👑','🧬','🧪','💩','👻','🎃','👺','🐺','🐗','🐯','🦒','🐘','🦓','🦍','🦧','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐬','🐳','🦈','🐊','🐢','🦎','🦖','🦕','🐉','🦜','🦢','🦩','🕊️','🦉','🦇','🦋','🐌','🐜'];
 
         window.toggleUserMenu = () => {
@@ -132,6 +142,7 @@
                 const initial = p.nickname.charAt(0).toUpperCase();
                 document.getElementById('initialCircle').firstChild.textContent = initial;
                 document.getElementById('initialCircle').style.backgroundColor = p.color || '#2ecc71';
+                document.getElementById('colorPicker').value = p.color || '#2ecc71';
                 
                 verificarLimiteDiario(user.uid);
                 carregarPostsERanking();
@@ -154,9 +165,8 @@
             if (n) { await updateDoc(doc(db, "users", auth.currentUser.uid), { nickname: n }); location.reload(); }
         };
 
-        // SALVAR COR DO PICKER
-        document.getElementById('colorPicker').onchange = async (e) => {
-            const c = e.target.value;
+        window.salvarCor = async () => {
+            const c = document.getElementById('colorPicker').value;
             await updateDoc(doc(db, "users", auth.currentUser.uid), { color: c });
             location.reload();
         };
@@ -194,7 +204,8 @@
 
             const hLeque = EMOJIS.map(e => `<button class="emoji-option" onclick="reagir('${postId}', '${e}')">${e}</button>`).join('');
 
-            b.innerHTML = `${hReacoes} <div class="picker-container"><button class="add-emoji-btn">＋</button><div class="emoji-leque">${hLeque}</div></div>`;
+            // CARACTERE DE TEXTO EM VEZ DE EMOJI NO BOTÃO
+            b.innerHTML = `${hReacoes} <div class="picker-container"><button class="add-emoji-btn">:-)</button><div class="emoji-leque">${hLeque}</div></div>`;
         }
 
         document.getElementById('fileInput').onchange = async (e) => {
@@ -229,7 +240,10 @@
                                 <span class="username" style="color:${ud.color || 'var(--green)'}">${ud.nickname}</span>
                                 <div class="reactions-bar" id="reactions-${id}"></div>
                                 <div class="comments-section" id="comments-${id}"></div>
-                                <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="if(event.key=='Enter'){ window.enviarComent('${id}', this) }">
+                                <div class="comment-box">
+                                    <input type="text" id="input-${id}" class="comment-input" placeholder="Comentar...">
+                                    <button class="btn-comment-ok" onclick="enviarComent('${id}')">OK</button>
+                                </div>
                             </div>`;
                         
                         onSnapshot(query(collection(db, `posts/${id}/comments`), orderBy("timestamp", "asc")), s => {
@@ -255,7 +269,8 @@
             });
         }
 
-        window.enviarComent = async (id, input) => {
+        window.enviarComent = async (id) => {
+            const input = document.getElementById(`input-${id}`);
             if(!input.value) return;
             const u = await getDoc(doc(db, "users", auth.currentUser.uid));
             await addDoc(collection(db, `posts/${id}/comments`), { 
