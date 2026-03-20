@@ -4,30 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeedRats 🌿</title>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
     <style>
         :root { --green: #2ecc71; --dark: #1a1a1a; --text: #eee; }
-        body { font-family: sans-serif; background: var(--dark); color: var(--text); text-align: center; margin: 0; padding-bottom: 100px; }
-        header { padding: 20px; border-bottom: 1px solid #333; background: var(--dark); position: sticky; top: 0; z-index: 10; }
+        body { font-family: sans-serif; background: var(--dark); color: var(--text); text-align: center; margin: 0; padding-bottom: 110px; }
+        header { padding: 20px; border-bottom: 1px solid #333; background: var(--dark); position: sticky; top: 0; z-index: 100; }
         #ranking { background: #252525; margin: 15px; padding: 15px; border-radius: 12px; border: 1px solid var(--green); }
         #feed { padding: 10px; max-width: 500px; margin: 0 auto; }
         .post { background: #222; margin-bottom: 25px; border-radius: 15px; overflow: hidden; border: 1px solid #333; text-align: left; }
         .post img { width: 100%; height: auto; display: block; }
         .post-content { padding: 15px; }
-        .post-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .username { font-weight: bold; color: var(--green); }
         .btn { background: var(--green); border: none; padding: 14px 28px; border-radius: 30px; color: white; cursor: pointer; font-weight: bold; }
         .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
-        #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 100; width: 90%; max-width: 400px; }
-        .hidden { display: none; }
-        .username { font-weight: bold; color: var(--green); }
         
-        /* Reações e Comentários */
-        .reactions { margin-top: 10px; display: flex; gap: 15px; border-top: 1px solid #333; padding-top: 10px; }
-        .react-btn { cursor: pointer; background: #333; border: none; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; transition: 0.2s; }
-        .react-btn:hover { background: #444; }
+        /* Reações */
+        .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
+        .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
+        .react-count.active { border-color: var(--green); background: #1e3a2a; }
+        .add-emoji { cursor: pointer; background: #444; border: none; color: white; padding: 4px 10px; border-radius: 12px; }
+
+        /* Comentários */
         .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
-        .comment { margin-bottom: 5px; color: #ccc; }
+        .comment { margin-bottom: 5px; }
         .comment b { color: var(--green); }
         .comment-input { width: 100%; background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
+        
+        #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -38,7 +42,7 @@
             <button id="btnLogin" class="btn">Login com Google</button>
             <div id="user-info" class="hidden">
                 <span id="userName" class="username"></span> 
-                <span style="font-size:0.7em; cursor:pointer; text-decoration:underline; color: #888;" onclick="alterarNick()">[mudar nick]</span>
+                <span style="font-size:0.7em; cursor:pointer; text-decoration:underline; color:#888" onclick="alterarNick()">[mudar nick]</span>
                 | <button onclick="auth.signOut().then(() => location.reload())" style="background:none; border:none; color:gray; cursor:pointer;">Sair</button>
             </div>
         </div>
@@ -46,7 +50,7 @@
 
     <div id="ranking">
         <strong>🏆 TOP RATS</strong>
-        <div id="listRanking" style="margin-top:10px; font-size: 0.9em;">Carregando...</div>
+        <div id="listRanking" style="margin-top:10px;">Carregando...</div>
     </div>
 
     <main id="feed"></main>
@@ -54,13 +58,13 @@
     <div id="upload-area" class="hidden">
         <input type="file" id="fileInput" accept="image/*" class="hidden">
         <button id="btnCheckin" onclick="document.getElementById('fileInput').click()" class="btn" style="width: 100%;">🔥 LANÇAR CHECK-IN</button>
-        <p id="msgLimit" class="hidden" style="font-size: 0.8em; color: #e74c3c; margin-top: 10px;">Já chapou hoje! Volte amanhã.</p>
+        <p id="msgLimit" class="hidden" style="font-size: 0.8em; color: #e74c3c; margin-top: 10px;">Check-in diário concluído! ✅</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT4P90b1zGfPPn8h1wpPbrs9QgARMOuQU",
@@ -119,21 +123,29 @@
             onSnapshot(q, s => { if(!s.empty){ document.getElementById('btnCheckin').disabled = true; document.getElementById('msgLimit').classList.remove('hidden'); }});
         }
 
-        // FUNÇÃO DE REAÇÃO (CORRIGIDA)
+        // LÓGICA DE REAÇÃO ÚNICA POR EMOJI
         window.reagir = async (postId, emoji) => {
+            const uid = auth.currentUser.uid;
             const postRef = doc(db, "posts", postId);
-            const campo = `reactions.${emoji}`;
-            await updateDoc(postRef, { [campo]: increment(1) });
+            const reactDocRef = doc(db, `posts/${postId}/reacts`, uid);
+            
+            const reactSnap = await getDoc(reactDocRef);
+            const data = reactSnap.exists() ? reactSnap.data() : {};
+
+            if (data[emoji]) {
+                // Já reagiu com esse emoji? Remove.
+                await updateDoc(reactDocRef, { [emoji]: deleteField() });
+            } else {
+                // Não reagiu? Adiciona.
+                await setDoc(reactDocRef, { [emoji]: true }, { merge: true });
+            }
         };
 
-        // Sistema de Comentários
         window.enviarComentario = async (postId, input, event) => {
             if (event.key === 'Enter' && input.value) {
                 const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
                 await addDoc(collection(db, `posts/${postId}/comments`), {
-                    text: input.value,
-                    user: userSnap.data().nickname,
-                    timestamp: serverTimestamp()
+                    text: input.value, user: userSnap.data().nickname, timestamp: serverTimestamp()
                 });
                 input.value = "";
             }
@@ -143,17 +155,14 @@
             const file = e.target.files[0];
             if (!file) return;
             const btn = document.getElementById('btnCheckin');
-            btn.disabled = true; btn.innerText = "SUBINDO FUMAÇA...";
+            btn.disabled = true; btn.innerText = "SUBINDO...";
             const formData = new FormData();
             formData.append('file', file); formData.append('upload_preset', CLOUDINARY_PRESET);
             try {
                 const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
                 const json = await res.json();
                 await addDoc(collection(db, "posts"), {
-                    uid: auth.currentUser.uid,
-                    imageUrl: json.secure_url,
-                    timestamp: serverTimestamp(),
-                    reactions: { "🔥": 0, "🌿": 0, "💨": 0 }
+                    uid: auth.currentUser.uid, imageUrl: json.secure_url, timestamp: serverTimestamp()
                 });
             } catch (err) { alert("Erro!"); }
             btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN";
@@ -164,7 +173,7 @@
             onSnapshot(q, (snapshot) => {
                 const feed = document.getElementById('feed');
                 const rankingDiv = document.getElementById('listRanking');
-                const contagem = {};
+                const contagemRanking = {};
                 feed.innerHTML = "";
 
                 snapshot.forEach(async postDoc => {
@@ -175,34 +184,72 @@
                     
                     const uSnap = await getDoc(doc(db, "users", data.uid));
                     const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat";
-                    contagem[currentNick] = (contagem[currentNick] || 0) + 1;
+                    contagemRanking[currentNick] = (contagemRanking[currentNick] || 0) + 1;
 
                     postElement.innerHTML = `
                         <img src="${data.imageUrl}">
                         <div class="post-content">
-                            <div class="post-header"><span class="username">${currentNick}</span></div>
-                            <div class="reactions">
-                                <button class="react-btn" onclick="reagir('${postId}', '🔥')">🔥 ${data.reactions?.["🔥"] || 0}</button>
-                                <button class="react-btn" onclick="reagir('${postId}', '🌿')">🌿 ${data.reactions?.["🌿"] || 0}</button>
-                                <button class="react-btn" onclick="reagir('${postId}', '💨')">💨 ${data.reactions?.["💨"] || 0}</button>
+                            <span class="username">${currentNick}</span>
+                            <div class="reactions-bar" id="reacts-${postId}">
+                                <button class="add-emoji" onclick="abrirEmojiPicker('${postId}')">+</button>
                             </div>
                             <div class="comments-section" id="comments-${postId}"></div>
-                            <input type="text" class="comment-input" placeholder="Escreva um comentário..." onkeypress="enviarComentario('${postId}', this, event)">
+                            <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postId}', this, event)">
                         </div>`;
                     feed.appendChild(postElement);
 
+                    // Carregar Reações do Post
+                    onSnapshot(collection(db, `posts/${postId}/reacts`), s => {
+                        const bar = document.getElementById(`reacts-${postId}`);
+                        if(!bar) return;
+                        const totals = {};
+                        const myReacts = [];
+                        
+                        s.docs.forEach(d => {
+                            Object.keys(d.data()).forEach(emoji => {
+                                totals[emoji] = (totals[emoji] || 0) + 1;
+                                if(d.id === auth.currentUser.uid) myReacts.push(emoji);
+                            });
+                        });
+
+                        bar.innerHTML = Object.entries(totals).map(([emoji, count]) => `
+                            <button class="react-count ${myReacts.includes(emoji) ? 'active' : ''}" onclick="reagir('${postId}', '${emoji}')">
+                                ${emoji} ${count}
+                            </button>
+                        `).join('') + `<button class="add-emoji" onclick="abrirEmojiPicker('${postId}')">+</button>`;
+                    });
+
+                    // Carregar Comentários
                     onSnapshot(query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "asc")), s => {
                         const div = document.getElementById(`comments-${postId}`);
                         if(div) div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
                     });
                 });
-                
+
                 setTimeout(() => {
-                    const sorted = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                    const sorted = Object.entries(contagemRanking).sort((a,b) => b[1] - a[1]).slice(0, 5);
                     rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}º ${n}</span><b>${p} pts</b></div>`).join('');
-                }, 1500);
+                }, 2000);
             });
         }
+
+        // LEQUE DE EMOJIS
+        window.abrirEmojiPicker = (postId) => {
+            const pickerOptions = { 
+                onEmojiSelect: (emoji) => {
+                    reagir(postId, emoji.native);
+                    document.querySelector('em-emoji-picker').remove();
+                },
+                onClickOutside: () => document.querySelector('em-emoji-picker').remove()
+            };
+            const picker = new EmojiMart.Picker(pickerOptions);
+            picker.style.position = 'fixed';
+            picker.style.bottom = '100px';
+            picker.style.left = '50%';
+            picker.style.transform = 'translateX(-50%)';
+            picker.style.zIndex = '1000';
+            document.body.appendChild(picker);
+        };
     </script>
 </body>
 </html>
