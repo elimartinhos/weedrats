@@ -11,8 +11,8 @@
         /* Header & Perfil */
         header { padding: 15px 20px; border-bottom: 1px solid #333; background: var(--dark); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
         .user-initial { width: 40px; height: 40px; background: var(--green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; cursor: pointer; position: relative; border: 2px solid #444; }
-        .user-menu { display: none; position: absolute; top: 50px; right: 0; background: #252525; border: 1px solid #444; border-radius: 12px; padding: 10px; width: 160px; z-index: 200; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .user-menu button { width: 100%; background: none; border: none; color: white; padding: 10px; text-align: left; cursor: pointer; border-radius: 6px; font-size: 0.9em; }
+        .user-menu { display: none; position: absolute; top: 50px; right: 0; background: #252525; border: 1px solid #444; border-radius: 12px; padding: 10px; width: 180px; z-index: 500; box-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+        .user-menu button { width: 100%; background: none; border: none; color: white; padding: 12px; text-align: left; cursor: pointer; border-radius: 6px; font-size: 0.95em; }
         .user-menu button:hover { background: #333; }
 
         #ranking { background: #252525; margin: 15px; padding: 15px; border-radius: 12px; border: 1px solid var(--green); }
@@ -20,31 +20,38 @@
         .post { background: #222; margin-bottom: 25px; border-radius: 15px; overflow: hidden; border: 1px solid #333; text-align: left; }
         .post img { width: 100%; height: auto; display: block; }
         .post-content { padding: 15px; }
-        .username { font-weight: bold; }
+        .username { font-weight: bold; margin-bottom: 5px; display: block; }
 
         /* Reações */
         .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; align-items: center; }
         .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
         .react-count.active { border-color: var(--green); background: #1e3a2a; }
         
-        /* O GRANDE LEQUE DE EMOJIS */
+        /* SUPER LEQUE DE EMOJIS */
         .picker-container { position: relative; display: inline-block; }
         .add-emoji-btn { cursor: pointer; background: none; border: none; font-size: 1.4em; padding: 5px; }
         .emoji-leque { 
-            display: none; position: absolute; bottom: 100%; left: -100px; 
-            background: #252525; padding: 10px; border-radius: 15px; 
-            border: 1px solid #555; z-index: 150; 
-            display: none; grid-template-columns: repeat(7, 1fr); gap: 5px;
-            width: 250px; max-height: 300px; overflow-y: auto;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+            display: none; position: absolute; bottom: 100%; left: -120px; 
+            background: #252525; padding: 12px; border-radius: 15px; 
+            border: 1px solid #555; z-index: 1000; 
+            grid-template-columns: repeat(7, 1fr); gap: 8px;
+            width: 280px; max-height: 250px; overflow-y: auto;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.9);
         }
         .picker-container:hover .emoji-leque { display: grid; }
-        .emoji-option { cursor: pointer; font-size: 1.2em; background: none; border: none; padding: 5px; transition: transform 0.1s; }
+        .emoji-option { cursor: pointer; font-size: 1.3em; background: none; border: none; padding: 5px; transition: 0.1s; }
         .emoji-option:hover { transform: scale(1.3); background: #444; border-radius: 8px; }
 
-        .comment-input { width: 100%; background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
+        /* Comentários */
+        .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .comment { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .comment-input { width: 100%; background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
+        
+        /* Botão de Check-in */
         #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
-        .hidden { display: none; }
+        .btn { background: var(--green); border: none; padding: 14px 28px; border-radius: 30px; color: white; cursor: pointer; font-weight: bold; width: 100%; font-size: 1em; }
+        .btn:disabled { background: #444 !important; color: #888 !important; cursor: not-allowed; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -52,13 +59,13 @@
     <header>
         <h2 style="margin:0">WeedRats 🌿</h2>
         <div id="auth-section">
-            <button id="btnLogin" class="btn">Login</button>
+            <button id="btnLogin" class="btn" style="width:auto">Login</button>
             <div id="user-initial-box" class="hidden">
                 <div class="user-initial" id="initialCircle" onclick="toggleUserMenu()">?
                     <div class="user-menu" id="userMenu">
                         <button onclick="alterarNick()">📝 Mudar Nick</button>
                         <button onclick="alterarCor()">🎨 Mudar Cor do Nick</button>
-                        <hr style="border:0; border-top:1px solid #444">
+                        <hr style="border:0; border-top:1px solid #444; margin: 5px 0;">
                         <button onclick="auth.signOut().then(() => location.reload())" style="color:#e74c3c">🚪 Sair</button>
                     </div>
                 </div>
@@ -68,15 +75,15 @@
 
     <div id="ranking">
         <strong>🏆 TOP RATS</strong>
-        <div id="listRanking" style="margin-top:10px;">...</div>
+        <div id="listRanking" style="margin-top:10px;">Carregando ranking...</div>
     </div>
 
     <main id="feed"></main>
 
     <div id="upload-area" class="hidden">
         <input type="file" id="fileInput" accept="image/*" class="hidden">
-        <button id="btnCheckin" onclick="document.getElementById('fileInput').click()" class="btn" style="width: 100%;">🔥 LANÇAR CHECK-IN</button>
-        <p id="msgLimit" class="hidden" style="font-size: 0.8em; color: #e74c3c; margin-top: 10px;">Limite diário atingido! ✅</p>
+        <button id="btnCheckin" onclick="document.getElementById('fileInput').click()" class="btn">🔥 LANÇAR CHECK-IN</button>
+        <p id="msgLimit" class="hidden" style="font-size: 0.85em; color: #e74c3c; margin-top: 10px; font-weight: bold;">Check-in diário concluído! ✅</p>
     </div>
 
     <script type="module">
@@ -101,7 +108,6 @@
         const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dexhvbdau/image/upload";
         const CLOUDINARY_PRESET = "weedrats_preset";
 
-        // 50 EMOJIS SELECIONADOS
         const EMOJIS = ['🔥', '🌿', '💨', '👽', '🍄', '🇯🇲', '🐀', '🦁', '🐍', '🐲', '🐒', '🦄', '🌵', '🌴', '🍀', '🍁', '🌲', '🌻', '💀', '🤡', '🤖', '🤠', '😈', '🤮', '🙄', '😎', '😍', '😂', '🚀', '🛸', '💻', '📱', '🎮', '🔋', '💎', '🎸', '💵', '🚬', '🍿', '🍕', '🍦', '🎨', '🎭', '🌊', '🌈', '⚡', '🧿', '👑', '🧬', '🧪'];
 
         window.toggleUserMenu = () => {
@@ -109,14 +115,19 @@
             m.style.display = m.style.display === 'block' ? 'none' : 'block';
         };
 
+        document.getElementById('btnLogin').onclick = () => signInWithPopup(auth, provider);
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const p = await verificarPerfil(user);
                 document.getElementById('btnLogin').classList.add('hidden');
                 document.getElementById('user-initial-box').classList.remove('hidden');
+                document.getElementById('upload-area').classList.remove('hidden'); // O BOTAO VOLTOU!
+                
                 const initial = p.nickname.charAt(0).toUpperCase();
                 document.getElementById('initialCircle').firstChild.textContent = initial;
                 document.getElementById('initialCircle').style.backgroundColor = p.color || '#2ecc71';
+                
                 verificarLimiteDiario(user.uid);
                 carregarPostsERanking();
             }
@@ -139,14 +150,19 @@
         };
 
         window.alterarCor = async () => {
-            const c = prompt("Digite uma cor (ex: red, blue, #FF5500, gold):", "gold");
+            const c = prompt("Cor (ex: gold, #FF00FF, lightblue):", "gold");
             if (c) { await updateDoc(doc(db, "users", auth.currentUser.uid), { color: c }); location.reload(); }
         };
 
         async function verificarLimiteDiario(uid) {
             const h = new Date(); h.setHours(0,0,0,0);
             const q = query(collection(db, "posts"), where("uid", "==", uid), where("timestamp", ">=", h), limit(1));
-            onSnapshot(q, s => { if(!s.empty){ document.getElementById('btnCheckin').disabled = true; document.getElementById('msgLimit').classList.remove('hidden'); }});
+            onSnapshot(q, s => { 
+                if(!s.empty){ 
+                    document.getElementById('btnCheckin').disabled = true; 
+                    document.getElementById('msgLimit').classList.remove('hidden'); 
+                }
+            });
         }
 
         window.reagir = async (postId, emoji) => {
@@ -158,7 +174,7 @@
             else { await updateDoc(r, { [`userReactions.${u}`]: emoji }); }
         };
 
-        function atualizarReacoes(postId, reacoes) {
+        function atualizarReacoesNaTela(postId, reacoes) {
             const b = document.getElementById(`reactions-${postId}`);
             if (!b) return;
             const my = auth.currentUser ? reacoes[auth.currentUser.uid] : null;
@@ -182,40 +198,64 @@
                 const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
                 const j = await res.json();
                 await addDoc(collection(db, "posts"), { uid: auth.currentUser.uid, imageUrl: j.secure_url, timestamp: serverTimestamp(), userReactions: {} });
-            } catch (err) { alert("Erro!"); }
-            btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN";
+            } catch (err) { alert("Erro!"); btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN"; }
         };
 
         function carregarPostsERanking() {
             const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
             onSnapshot(q, (snap) => {
                 const feed = document.getElementById('feed');
-                snap.docs.forEach((d, i) => {
+                const rankingDiv = document.getElementById('listRanking');
+                const contagemRanking = {};
+
+                snap.docs.forEach(async (d) => {
                     const data = d.data(); const id = d.id;
                     let el = document.getElementById(`post-${id}`);
+                    
                     if (!el) {
                         el = document.createElement('div'); el.className = 'post'; el.id = `post-${id}`;
                         feed.appendChild(el);
-                        getDoc(doc(db, "users", data.uid)).then(u => {
-                            const ud = u.data();
-                            el.innerHTML = `
-                                <img src="${data.imageUrl}">
-                                <div class="post-content">
-                                    <span class="username" style="color:${ud.color || 'var(--green)'}">${ud.nickname}</span>
-                                    <div class="reactions-bar" id="reactions-${id}"></div>
-                                    <div class="comments-section" id="comments-${id}"></div>
-                                    <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="if(event.key=='Enter'){ enviarComent('${id}', this) }">
-                                </div>`;
-                            atualizarReacoes(id, data.userReactions || {});
+                        const u = await getDoc(doc(db, "users", data.uid));
+                        const ud = u.data();
+                        el.innerHTML = `
+                            <img src="${data.imageUrl}">
+                            <div class="post-content">
+                                <span class="username" style="color:${ud.color || 'var(--green)'}">${ud.nickname}</span>
+                                <div class="reactions-bar" id="reactions-${id}"></div>
+                                <div class="comments-section" id="comments-${id}"></div>
+                                <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="if(event.key=='Enter'){ window.enviarComent('${id}', this) }">
+                            </div>`;
+                        
+                        onSnapshot(query(collection(db, `posts/${id}/comments`), orderBy("timestamp", "asc")), s => {
+                            const cDiv = document.getElementById(`comments-${id}`);
+                            if(cDiv) cDiv.innerHTML = s.docs.map(cd => `<div class="comment"><b>${cd.data().user}:</b> ${cd.data().text}</div>`).join('');
                         });
-                    } else { atualizarReacoes(id, data.userReactions || {}); }
+                    }
+                    atualizarReacoesNaTela(id, data.userReactions || {});
                 });
+
+                // Ranking
+                setTimeout(async () => {
+                    const counts = {};
+                    for(let d of snap.docs) {
+                        const u = await getDoc(doc(db, "users", d.data().uid));
+                        const n = u.data().nickname;
+                        counts[n] = (counts[n] || 0) + 1;
+                    }
+                    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+                    rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}º ${n}</span><b>${p} pts</b></div>`).join('');
+                }, 1000);
             });
         }
 
         window.enviarComent = async (id, input) => {
+            if(!input.value) return;
             const u = await getDoc(doc(db, "users", auth.currentUser.uid));
-            await addDoc(collection(db, `posts/${id}/comments`), { text: input.value, user: u.data().nickname, color: u.data().color, timestamp: serverTimestamp() });
+            await addDoc(collection(db, `posts/${id}/comments`), { 
+                text: input.value, 
+                user: u.data().nickname, 
+                timestamp: serverTimestamp() 
+            });
             input.value = "";
         };
     </script>
