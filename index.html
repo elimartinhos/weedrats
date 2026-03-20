@@ -126,7 +126,6 @@
             }
         };
 
-        // TRAVA DIÁRIA REFORÇADA
         function travarBotao() {
             document.getElementById('btnCheckin').disabled = true;
             document.getElementById('msgLimit').classList.remove('hidden');
@@ -135,12 +134,9 @@
         async function verificarLimiteDiario(uid) {
             const hoje = new Date(); hoje.setHours(0,0,0,0);
             const q = query(collection(db, "posts"), where("uid", "==", uid), where("timestamp", ">=", hoje), limit(1));
-            onSnapshot(q, s => { 
-                if(!s.empty){ travarBotao(); }
-            });
+            onSnapshot(q, s => { if(!s.empty){ travarBotao(); }});
         }
 
-        // LÓGICA DE REAÇÃO ÚNICA (DO ZERO)
         window.reagir = async (postId, emojiEscolhido) => {
             if (!auth.currentUser) return;
             const uid = auth.currentUser.uid;
@@ -153,10 +149,8 @@
             const minhaReacao = reacoesAtuais[uid];
 
             if (minhaReacao === emojiEscolhido) {
-                // Se clicou no mesmo que já estava, remove (descurtir)
                 await updateDoc(postRef, { [`userReactions.${uid}`]: deleteField() });
             } else {
-                // Se clicou em um novo, adiciona ou substitui
                 await updateDoc(postRef, { [`userReactions.${uid}`]: emojiEscolhido });
             }
         };
@@ -185,79 +179,109 @@
                     uid: auth.currentUser.uid, 
                     imageUrl: json.secure_url, 
                     timestamp: serverTimestamp(),
-                    userReactions: {} // Inicia o mapa de reações vazio
+                    userReactions: {}
                 });
-                travarBotao(); // Trava na mesma hora que posta!
+                travarBotao();
             } catch (err) { alert("Erro ao enviar a foto!"); btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN"; }
         };
 
+        // Função que injeta SÓ as reações no HTML, sem piscar a imagem
+        function atualizarReacoesNaTela(postId, reacoes) {
+            const bar = document.getElementById(`reactions-${postId}`);
+            if (!bar) return;
+
+            const minhaReacao = auth.currentUser ? reacoes[auth.currentUser.uid] : null;
+            const totais = {};
+            
+            Object.values(reacoes).forEach(emoji => {
+                totais[emoji] = (totais[emoji] || 0) + 1;
+            });
+
+            const htmlReacoesExistentes = Object.entries(totais).map(([emoji, count]) => `
+                <button class="react-count ${minhaReacao === emoji ? 'active' : ''}" onclick="reagir('${postId}', '${emoji}')">
+                    ${emoji} ${count}
+                </button>
+            `).join('');
+
+            const htmlOpcoesLeque = EMOJIS_DISPONIVEIS.map(emoji => `
+                <button class="emoji-option" onclick="reagir('${postId}', '${emoji}')">${emoji}</button>
+            `).join('');
+
+            bar.innerHTML = `
+                ${htmlReacoesExistentes}
+                <div class="picker-container">
+                    <button class="add-emoji-btn">😀</button>
+                    <div class="emoji-leque">${htmlOpcoesLeque}</div>
+                </div>
+            `;
+        }
+
         function carregarPostsERanking() {
             const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            
             onSnapshot(q, (snapshot) => {
                 const feed = document.getElementById('feed');
                 const rankingDiv = document.getElementById('listRanking');
-                const contagemRanking = {};
-                feed.innerHTML = "";
 
-                snapshot.forEach(async postDoc => {
+                snapshot.docs.forEach((postDoc, index) => {
                     const data = postDoc.data();
                     const postId = postDoc.id;
-                    const postElement = document.createElement('div');
-                    postElement.className = 'post';
-                    
-                    const uSnap = await getDoc(doc(db, "users", data.uid));
-                    const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat";
-                    contagemRanking[currentNick] = (contagemRanking[currentNick] || 0) + 1;
 
-                    // Calcula totais de reações a partir do Map { uid: emoji }
-                    const reacoes = data.userReactions || {};
-                    const minhaReacao = auth.currentUser ? reacoes[auth.currentUser.uid] : null;
-                    const totais = {};
-                    
-                    Object.values(reacoes).forEach(emoji => {
-                        totais[emoji] = (totais[emoji] || 0) + 1;
-                    });
+                    // Procura se o post já tá renderizado no feed
+                    let postElement = document.getElementById(`post-${postId}`);
 
-                    // Monta os botões das reações existentes
-                    const htmlReacoesExistentes = Object.entries(totais).map(([emoji, count]) => `
-                        <button class="react-count ${minhaReacao === emoji ? 'active' : ''}" onclick="reagir('${postId}', '${emoji}')">
-                            ${emoji} ${count}
-                        </button>
-                    `).join('');
+                    if (!postElement) {
+                        // POST NOVO: Cria a caixa dele
+                        postElement = document.createElement('div');
+                        postElement.className = 'post';
+                        postElement.id = `post-${postId}`;
+                        
+                        // Garante que fique na ordem certa descendo
+                        if (index >= feed.children.length) {
+                            feed.appendChild(postElement);
+                        } else {
+                            feed.insertBefore(postElement, feed.children[index]);
+                        }
 
-                    // Monta o leque de opções (Hover)
-                    const htmlOpcoesLeque = EMOJIS_DISPONIVEIS.map(emoji => `
-                        <button class="emoji-option" onclick="reagir('${postId}', '${emoji}')">${emoji}</button>
-                    `).join('');
+                        // Puxa o nick e monta a estrutura base do post
+                        getDoc(doc(db, "users", data.uid)).then(uSnap => {
+                            const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat";
+                            
+                            postElement.innerHTML = `
+                                <img src="${data.imageUrl}">
+                                <div class="post-content">
+                                    <span class="username">${currentNick}</span>
+                                    <div class="reactions-bar" id="reactions-${postId}"></div>
+                                    <div class="comments-section" id="comments-${postId}"></div>
+                                    <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postId}', this, event)">
+                                </div>`;
+                            
+                            // Adiciona as reações iniciais
+                            atualizarReacoesNaTela(postId, data.userReactions || {});
 
-                    postElement.innerHTML = `
-                        <img src="${data.imageUrl}">
-                        <div class="post-content">
-                            <span class="username">${currentNick}</span>
-                            <div class="reactions-bar">
-                                ${htmlReacoesExistentes}
-                                <div class="picker-container">
-                                    <button class="add-emoji-btn">😀</button>
-                                    <div class="emoji-leque">${htmlOpcoesLeque}</div>
-                                </div>
-                            </div>
-                            <div class="comments-section" id="comments-${postId}"></div>
-                            <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postId}', this, event)">
-                        </div>`;
-                    feed.appendChild(postElement);
-
-                    // Carrega comentários
-                    onSnapshot(query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "asc")), s => {
-                        const div = document.getElementById(`comments-${postId}`);
-                        if(div) div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
-                    });
+                            // Inicia a escuta dos comentários pra esse post específico
+                            onSnapshot(query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "asc")), s => {
+                                const div = document.getElementById(`comments-${postId}`);
+                                if(div) div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
+                            });
+                        });
+                    } else {
+                        // POST JÁ EXISTE: Só atualiza as reações (sem piscar tela)
+                        atualizarReacoesNaTela(postId, data.userReactions || {});
+                    }
                 });
 
-                // Atualiza Ranking
-                setTimeout(() => {
-                    const sorted = Object.entries(contagemRanking).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                // Atualiza Ranking de forma assíncrona pra não travar o feed
+                setTimeout(async () => {
+                    const contagem = {};
+                    for (let d of snapshot.docs) {
+                        const uSnap = await getDoc(doc(db, "users", d.data().uid));
+                        const nick = uSnap.exists() ? uSnap.data().nickname : "Rat";
+                        contagem[nick] = (contagem[nick] || 0) + 1;
+                    }
+                    const sorted = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 5);
                     rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}º ${n}</span><b>${p} pts</b></div>`).join('');
-                }, 1000);
+                }, 500);
             });
         }
     </script>
