@@ -10,16 +10,22 @@
         header { padding: 20px; border-bottom: 1px solid #333; background: var(--dark); position: sticky; top: 0; z-index: 10; }
         #ranking { background: #252525; margin: 15px; padding: 15px; border-radius: 12px; border: 1px solid var(--green); }
         #feed { padding: 10px; max-width: 500px; margin: 0 auto; }
-        .post { background: #222; margin-bottom: 25px; border-radius: 15px; overflow: hidden; border: 1px solid #333; }
+        .post { background: #222; margin-bottom: 25px; border-radius: 15px; overflow: hidden; border: 1px solid #333; text-align: left; }
         .post img { width: 100%; height: auto; display: block; }
-        .post-info { padding: 15px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
-        .btn { background: var(--green); border: none; padding: 14px 28px; border-radius: 30px; color: white; cursor: pointer; font-weight: bold; font-size: 1em; }
+        .post-content { padding: 15px; }
+        .post-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .btn { background: var(--green); border: none; padding: 14px 28px; border-radius: 30px; color: white; cursor: pointer; font-weight: bold; }
         .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
         #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 100; width: 90%; max-width: 400px; }
         .hidden { display: none; }
         .username { font-weight: bold; color: var(--green); }
-        .rank-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #444; }
-        .edit-nick { font-size: 0.7em; color: #888; cursor: pointer; text-decoration: underline; margin-left: 5px; }
+        
+        /* Reações e Comentários */
+        .reactions { margin-top: 10px; display: flex; gap: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .react-btn { cursor: pointer; background: none; border: none; color: #888; font-size: 1.2em; }
+        .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.9em; }
+        .comment { margin-bottom: 5px; }
+        .comment-input { width: 100%; background: #333; border: none; color: white; padding: 8px; border-radius: 5px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -29,32 +35,30 @@
         <div id="auth-section">
             <button id="btnLogin" class="btn">Login com Google</button>
             <div id="user-info" class="hidden">
-                Bem-vindo, <span id="userName" class="username"></span> 
-                <span class="edit-nick" onclick="alterarNick()">[mudar nick]</span>
+                <span id="userName" class="username"></span> 
+                <span style="font-size:0.7em; cursor:pointer; text-decoration:underline;" onclick="alterarNick()">[mudar nick]</span>
                 | <button onclick="auth.signOut().then(() => location.reload())" style="background:none; border:none; color:gray; cursor:pointer;">Sair</button>
             </div>
         </div>
     </header>
 
     <div id="ranking">
-        <strong>🏆 TOP RATS (Total)</strong>
+        <strong>🏆 TOP RATS</strong>
         <div id="listRanking" style="margin-top:10px;">Carregando...</div>
     </div>
 
-    <main id="feed">
-        <p style="color: #888; margin-top: 50px;">Faça login para participar!</p>
-    </main>
+    <main id="feed"></main>
 
     <div id="upload-area" class="hidden">
         <input type="file" id="fileInput" accept="image/*" class="hidden">
         <button id="btnCheckin" onclick="document.getElementById('fileInput').click()" class="btn" style="width: 100%;">🔥 LANÇAR CHECK-IN</button>
-        <p id="msgLimit" class="hidden" style="font-size: 0.8em; color: #e74c3c; margin-top: 10px;">Você já chapou hoje! Volte amanhã. ✋</p>
+        <p id="msgLimit" class="hidden" style="font-size: 0.8em; color: #e74c3c; margin-top: 10px;">Já chapou hoje! Volte amanhã.</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, where, limit, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT4P90b1zGfPPn8h1wpPbrs9QgARMOuQU",
@@ -78,12 +82,11 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const nickname = await verificarPerfil(user);
+                const nick = await verificarPerfil(user);
                 document.getElementById('btnLogin').classList.add('hidden');
                 document.getElementById('user-info').classList.remove('hidden');
-                document.getElementById('userName').innerText = nickname;
+                document.getElementById('userName').innerText = nick;
                 document.getElementById('upload-area').classList.remove('hidden');
-                
                 verificarLimiteDiario(user.uid);
                 carregarPostsERanking();
             }
@@ -93,7 +96,7 @@
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
-                const nick = prompt("Qual será seu vulgo no WeedRats?", user.displayName) || user.displayName;
+                const nick = prompt("Qual seu vulgo?", user.displayName) || user.displayName;
                 await setDoc(userRef, { nickname: nick, uid: user.uid });
                 return nick;
             }
@@ -101,55 +104,50 @@
         }
 
         window.alterarNick = async () => {
-            const novoNick = prompt("Novo apelido:");
-            if (novoNick) {
-                await updateDoc(doc(db, "users", auth.currentUser.uid), { nickname: novoNick });
+            const novo = prompt("Novo nick:");
+            if (novo) {
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { nickname: novo });
                 location.reload();
             }
         };
 
         async function verificarLimiteDiario(uid) {
-            const hoje = new Date();
-            hoje.setHours(0,0,0,0);
-            
+            const hoje = new Date(); hoje.setHours(0,0,0,0);
             const q = query(collection(db, "posts"), where("uid", "==", uid), where("timestamp", ">=", hoje), limit(1));
-            onSnapshot(q, (snap) => {
-                if (!snap.empty) {
-                    document.getElementById('btnCheckin').disabled = true;
-                    document.getElementById('msgLimit').classList.remove('hidden');
-                }
-            });
+            onSnapshot(q, s => { if(!s.empty){ document.getElementById('btnCheckin').disabled = true; document.getElementById('msgLimit').classList.remove('hidden'); }});
         }
+
+        // Sistema de Comentários
+        window.enviarComentario = async (postId, input) => {
+            if (event.key === 'Enter' && input.value) {
+                const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
+                await addDoc(collection(db, `posts/${postId}/comments`), {
+                    text: input.value,
+                    user: userSnap.data().nickname,
+                    timestamp: serverTimestamp()
+                });
+                input.value = "";
+            }
+        };
 
         document.getElementById('fileInput').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const btn = document.getElementById('btnCheckin');
-            btn.disabled = true;
-            btn.innerText = "SUBINDO...";
-
+            btn.disabled = true; btn.innerText = "SUBINDO...";
             const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_PRESET);
-
+            formData.append('file', file); formData.append('upload_preset', CLOUDINARY_PRESET);
             try {
                 const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
                 const json = await res.json();
-                
-                const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
-                
                 await addDoc(collection(db, "posts"), {
                     uid: auth.currentUser.uid,
-                    userName: userSnap.data().nickname,
                     imageUrl: json.secure_url,
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp(),
+                    reactions: { "🔥": 0, "🌿": 0, "💨": 0 }
                 });
-                alert("Check-in feito! 🔥");
-            } catch (err) {
-                alert("Erro ao subir foto!");
-                btn.disabled = false;
-            }
+            } catch (err) { alert("Erro!"); }
+            btn.disabled = false; btn.innerText = "🔥 LANÇAR CHECK-IN";
         };
 
         function carregarPostsERanking() {
@@ -160,23 +158,42 @@
                 const contagem = {};
                 feed.innerHTML = "";
 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    feed.innerHTML += `
-                        <div class="post">
-                            <img src="${data.imageUrl}">
-                            <div class="post-info">
-                                <span><span class="username">${data.userName}</span></span>
-                                <span>🌿🔥💨</span>
-                            </div>
-                        </div>`;
-                    contagem[data.userName] = (contagem[data.userName] || 0) + 1;
-                });
+                snapshot.forEach(async postDoc => {
+                    const data = postDoc.data();
+                    const postElement = document.createElement('div');
+                    postElement.className = 'post';
+                    
+                    // Busca nick em tempo real para posts antigos
+                    const uSnap = await getDoc(doc(db, "users", data.uid));
+                    const currentNick = uSnap.exists() ? uSnap.data().nickname : "Rat Desconhecido";
+                    contagem[currentNick] = (contagem[currentNick] || 0) + 1;
 
-                const sorted = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 5);
-                rankingDiv.innerHTML = sorted.map(([name, pts], i) => `
-                    <div class="rank-item"><span>${i+1}º ${name}</span><b>${pts} pts</b></div>
-                `).join('') || "Ninguém postou ainda.";
+                    postElement.innerHTML = `
+                        <img src="${data.imageUrl}">
+                        <div class="post-content">
+                            <div class="post-header"><span class="username">${currentNick}</span></div>
+                            <div class="reactions">
+                                <span>🔥 ${data.reactions?.["🔥"] || 0}</span>
+                                <span>🌿 ${data.reactions?.["🌿"] || 0}</span>
+                                <span>💨 ${data.reactions?.["💨"] || 0}</span>
+                            </div>
+                            <div class="comments-section" id="comments-${postDoc.id}"></div>
+                            <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postDoc.id}', this)">
+                        </div>`;
+                    feed.appendChild(postElement);
+
+                    // Carregar Comentários
+                    onSnapshot(query(collection(db, `posts/${postDoc.id}/comments`), orderBy("timestamp", "asc")), s => {
+                        const div = document.getElementById(`comments-${postDoc.id}`);
+                        div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
+                    });
+                });
+                
+                // Atualiza Ranking (Top 5)
+                setTimeout(() => {
+                    const sorted = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                    rankingDiv.innerHTML = sorted.map(([n, p], i) => `<div>${i+1}º ${n} - ${p} pts</div>`).join('');
+                }, 1000);
             });
         }
     </script>
