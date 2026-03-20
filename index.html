@@ -19,10 +19,11 @@
         .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
         
         /* Reações */
-        .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
+        .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; align-items: center; }
         .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
         .react-count.active { border-color: var(--green); background: #1e3a2a; }
-        .add-emoji { cursor: pointer; background: #444; border: none; color: white; padding: 4px 10px; border-radius: 12px; }
+        .add-emoji-btn { cursor: pointer; background: none; border: none; font-size: 1.3em; padding: 0; margin-left: 5px; filter: grayscale(1); transition: 0.2s; }
+        .add-emoji-btn:hover { filter: grayscale(0); transform: scale(1.1); }
 
         /* Comentários */
         .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
@@ -32,6 +33,9 @@
         
         #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
         .hidden { display: none; }
+        
+        /* Ajuste do Picker */
+        em-emoji-picker { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 2000; --num-columns: 7; }
     </style>
 </head>
 <body>
@@ -123,20 +127,14 @@
             onSnapshot(q, s => { if(!s.empty){ document.getElementById('btnCheckin').disabled = true; document.getElementById('msgLimit').classList.remove('hidden'); }});
         }
 
-        // LÓGICA DE REAÇÃO ÚNICA POR EMOJI
         window.reagir = async (postId, emoji) => {
             const uid = auth.currentUser.uid;
-            const postRef = doc(db, "posts", postId);
             const reactDocRef = doc(db, `posts/${postId}/reacts`, uid);
-            
             const reactSnap = await getDoc(reactDocRef);
             const data = reactSnap.exists() ? reactSnap.data() : {};
-
             if (data[emoji]) {
-                // Já reagiu com esse emoji? Remove.
                 await updateDoc(reactDocRef, { [emoji]: deleteField() });
             } else {
-                // Não reagiu? Adiciona.
                 await setDoc(reactDocRef, { [emoji]: true }, { merge: true });
             }
         };
@@ -191,35 +189,31 @@
                         <div class="post-content">
                             <span class="username">${currentNick}</span>
                             <div class="reactions-bar" id="reacts-${postId}">
-                                <button class="add-emoji" onclick="abrirEmojiPicker('${postId}')">+</button>
+                                <button class="add-emoji-btn" onclick="abrirEmojiPicker('${postId}')">😀</button>
                             </div>
                             <div class="comments-section" id="comments-${postId}"></div>
                             <input type="text" class="comment-input" placeholder="Comentar..." onkeypress="enviarComentario('${postId}', this, event)">
                         </div>`;
                     feed.appendChild(postElement);
 
-                    // Carregar Reações do Post
                     onSnapshot(collection(db, `posts/${postId}/reacts`), s => {
                         const bar = document.getElementById(`reacts-${postId}`);
                         if(!bar) return;
                         const totals = {};
                         const myReacts = [];
-                        
                         s.docs.forEach(d => {
                             Object.keys(d.data()).forEach(emoji => {
                                 totals[emoji] = (totals[emoji] || 0) + 1;
                                 if(d.id === auth.currentUser.uid) myReacts.push(emoji);
                             });
                         });
-
                         bar.innerHTML = Object.entries(totals).map(([emoji, count]) => `
                             <button class="react-count ${myReacts.includes(emoji) ? 'active' : ''}" onclick="reagir('${postId}', '${emoji}')">
                                 ${emoji} ${count}
                             </button>
-                        `).join('') + `<button class="add-emoji" onclick="abrirEmojiPicker('${postId}')">+</button>`;
+                        `).join('') + `<button class="add-emoji-btn" onclick="abrirEmojiPicker('${postId}')">😀</button>`;
                     });
 
-                    // Carregar Comentários
                     onSnapshot(query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "asc")), s => {
                         const div = document.getElementById(`comments-${postId}`);
                         if(div) div.innerHTML = s.docs.map(d => `<div class="comment"><b>${d.data().user}:</b> ${d.data().text}</div>`).join('');
@@ -233,9 +227,13 @@
             });
         }
 
-        // LEQUE DE EMOJIS
         window.abrirEmojiPicker = (postId) => {
+            // Remove o picker se já existir um aberto
+            const existing = document.querySelector('em-emoji-picker');
+            if (existing) existing.remove();
+
             const pickerOptions = { 
+                locale: 'pt',
                 onEmojiSelect: (emoji) => {
                     reagir(postId, emoji.native);
                     document.querySelector('em-emoji-picker').remove();
@@ -243,11 +241,6 @@
                 onClickOutside: () => document.querySelector('em-emoji-picker').remove()
             };
             const picker = new EmojiMart.Picker(pickerOptions);
-            picker.style.position = 'fixed';
-            picker.style.bottom = '100px';
-            picker.style.left = '50%';
-            picker.style.transform = 'translateX(-50%)';
-            picker.style.zIndex = '1000';
             document.body.appendChild(picker);
         };
     </script>
