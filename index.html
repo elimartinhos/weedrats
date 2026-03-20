@@ -22,8 +22,7 @@
         .reactions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; align-items: center; }
         .react-count { background: #333; border: 1px solid #444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; cursor: pointer; }
         .react-count.active { border-color: var(--green); background: #1e3a2a; }
-        .add-emoji-btn { cursor: pointer; background: none; border: none; font-size: 1.3em; padding: 0; margin-left: 5px; filter: grayscale(1); transition: 0.2s; }
-        .add-emoji-btn:hover { filter: grayscale(0); transform: scale(1.1); }
+        .add-emoji-btn { cursor: pointer; background: none; border: none; font-size: 1.3em; padding: 0; margin-left: 5px; transition: 0.2s; }
 
         /* Comentários */
         .comments-section { background: #1a1a1a; padding: 10px; font-size: 0.85em; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
@@ -34,8 +33,8 @@
         #upload-area { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
         .hidden { display: none; }
         
-        /* Ajuste do Picker */
-        em-emoji-picker { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 2000; --num-columns: 7; }
+        /* Picker Estático Oculto */
+        #picker-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; }
     </style>
 </head>
 <body>
@@ -58,6 +57,8 @@
     </div>
 
     <main id="feed"></main>
+
+    <div id="picker-container"></div>
 
     <div id="upload-area" class="hidden">
         <input type="file" id="fileInput" accept="image/*" class="hidden">
@@ -87,6 +88,20 @@
         const auth = window.auth = getAuth(app);
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
+
+        let currentPostIdForEmoji = null;
+
+        // INICIALIZA O PICKER UMA ÚNICA VEZ
+        const pickerContainer = document.getElementById('picker-container');
+        const picker = new EmojiMart.Picker({
+            locale: 'pt',
+            onEmojiSelect: (emoji) => {
+                if (currentPostIdForEmoji) reagir(currentPostIdForEmoji, emoji.native);
+                pickerContainer.style.display = 'none';
+            },
+            onClickOutside: () => { pickerContainer.style.display = 'none'; }
+        });
+        pickerContainer.appendChild(picker);
 
         document.getElementById('btnLogin').onclick = () => signInWithPopup(auth, provider);
 
@@ -137,6 +152,11 @@
             } else {
                 await setDoc(reactDocRef, { [emoji]: true }, { merge: true });
             }
+        };
+
+        window.abrirEmojiPicker = (postId) => {
+            currentPostIdForEmoji = postId;
+            pickerContainer.style.display = (pickerContainer.style.display === 'block') ? 'none' : 'block';
         };
 
         window.enviarComentario = async (postId, input, event) => {
@@ -226,23 +246,6 @@
                 }, 2000);
             });
         }
-
-        window.abrirEmojiPicker = (postId) => {
-            // Remove o picker se já existir um aberto
-            const existing = document.querySelector('em-emoji-picker');
-            if (existing) existing.remove();
-
-            const pickerOptions = { 
-                locale: 'pt',
-                onEmojiSelect: (emoji) => {
-                    reagir(postId, emoji.native);
-                    document.querySelector('em-emoji-picker').remove();
-                },
-                onClickOutside: () => document.querySelector('em-emoji-picker').remove()
-            };
-            const picker = new EmojiMart.Picker(pickerOptions);
-            document.body.appendChild(picker);
-        };
     </script>
 </body>
 </html>
